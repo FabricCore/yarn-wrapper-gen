@@ -27,10 +27,16 @@ impl Index {
             .get(&ident.split('/').map(str::to_string).collect::<Vec<_>>())
     }
 
-    pub fn write(&self, root: impl Into<PathBuf>, index: &Index, package: &str) {
+    pub fn write(
+        &self,
+        root: impl Into<PathBuf>,
+        index: &Index,
+        package: &str,
+        remap: &HashMap<String, String>,
+    ) {
         let root: PathBuf = root.into();
         for entry in self.0.values() {
-            entry.write(root.as_path(), index, package);
+            entry.write(root.as_path(), index, package, remap);
         }
     }
 }

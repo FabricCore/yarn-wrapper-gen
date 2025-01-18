@@ -1,5 +1,5 @@
 use std::{
-    collections::HashSet,
+    collections::{HashMap, HashSet},
     fmt::Write,
     fs::{self, OpenOptions},
     io::Write as IoWrite,
@@ -18,11 +18,21 @@ pub struct Class {
 }
 
 impl Class {
-    pub fn write(&self, root: &Path, index: &Index, package: &str) {
-        let path: PathBuf = root
-            .join(package.replace(".", "/"))
-            .join(self.real_name.join("/"))
-            .with_extension("java");
+    pub fn write(
+        &self,
+        root: &Path,
+        index: &Index,
+        package: &str,
+        remap: &HashMap<String, String>,
+    ) {
+        let mut path = format!("{}.{}", package, self.real_name.join("."));
+
+        for (from, to) in remap.iter() {
+            path = path.replace(from, to);
+        }
+
+        let path = root.join(path.replace(".", "/")).with_extension("java");
+
         if !path.parent().unwrap().exists() {
             fs::create_dir_all(path.parent().unwrap()).unwrap();
         }
@@ -33,22 +43,32 @@ impl Class {
             .create(true)
             .open(path)
             .unwrap()
-            .write_all(self.to_string(index, package).as_bytes())
+            .write_all(self.to_string(index, package, remap).as_bytes())
             .unwrap();
     }
 
-    pub fn to_string(&self, index: &Index, package: &str) -> String {
+    pub fn to_string(
+        &self,
+        index: &Index,
+        package: &str,
+        remap: &HashMap<String, String>,
+    ) -> String {
         let package_name = self.real_name[0..self.real_name.len() - 1].join(".");
         let class_name = self.real_name.last().unwrap();
         let original_name = self.real_name.join(".");
 
         let entries = self.entries.iter().fold(String::new(), |mut acc, entry| {
-            writeln!(acc, "{}", entry.0.to_string(index, package)).unwrap();
+            writeln!(acc, "{}", entry.0.to_string(index, package, remap)).unwrap();
             acc
         });
+        let mut remapped = format!("{package}.{package_name}");
+
+        for (from, to) in remap.iter() {
+            remapped = remapped.replace(from, to);
+        }
 
         format!(
-            r#"package {package}.{package_name};
+            r#"package {remapped};
 public class {class_name} {{ public {original_name} wrapperContained; public {class_name}({original_name} wrapperContained) {{ this.wrapperContained = wrapperContained; }}
 
 {entries}
@@ -177,7 +197,13 @@ impl Entry {
         out
     }
 
-    fn type_string(s: &str, index: &Index, package: &str, wrap: bool) -> String {
+    fn type_string(
+        s: &str,
+        index: &Index,
+        package: &str,
+        wrap: bool,
+        remap: &HashMap<String, String>,
+    ) -> String {
         if !s.starts_with("[") && s.contains("$") {
             return "Object".to_string();
         }
@@ -199,7 +225,13 @@ impl Entry {
                         .starts_with(&["net".to_string(), "minecraft".to_string()])
                         && wrap
                     {
-                        format!("{package}.{}", class.real_name.join("."))
+                        let mut out = format!("{package}.{}", class.real_name.join("."));
+
+                        for (from, to) in remap.iter() {
+                            out = out.replace(from, to);
+                        }
+
+                        out
                     } else {
                         class.real_name.join(".")
                     }
@@ -208,13 +240,21 @@ impl Entry {
                 }
             }
             s if s.starts_with("[") => {
-                format!("{}[]", Self::type_string(&s[1..], index, package, false))
+                format!(
+                    "{}[]",
+                    Self::type_string(&s[1..], index, package, false, remap)
+                )
             }
             x => panic!("unknown type string \"{x}\""),
         }
     }
 
-    pub fn to_string(&self, index: &Index, package: &str) -> String {
+    pub fn to_string(
+        &self,
+        index: &Index,
+        package: &str,
+        remap: &HashMap<String, String>,
+    ) -> String {
         match self {
             Self::Field { label, r#type } => {
                 let r#type = if r#type.contains('$') {
@@ -223,7 +263,7 @@ impl Entry {
                     r#type.to_string()
                 };
 
-                let class = Self::type_string(&r#type, index, package, true);
+                let class = Self::type_string(&r#type, index, package, true, remap);
 
                 if class.starts_with(package) {
                     format!("public {class} {label}() {{ return new {class}(wrapperContained.{label}); }}")
@@ -245,13 +285,13 @@ impl Entry {
                 };
 
                 let mut wrapped = HashSet::new();
-                let class = Self::type_string(&output, index, package, true);
+                let class = Self::type_string(&output, index, package, true, remap);
                 let params = params
                     .iter()
                     .zip(param_declr.iter().map(|item| &item.0))
                     .enumerate()
                     .fold(String::new(), |mut acc, (i, (adt, name))| {
-                        let class = Self::type_string(adt, index, package, true);
+                        let class = Self::type_string(adt, index, package, true, remap);
                         if class.starts_with(package) {
                             wrapped.insert(i);
                         }
