@@ -4,7 +4,7 @@ This tool generates wrapper classes using [yarn](https://github.com/FabricMC/yar
 
 |Minecraft version|Wrapper version|Download|
 |---|---|---|
-|1.21.1|1|[Release](https://github.com/Siriusmart/yarn-wrapper-gen/releases/tag/1.21.1b1)|
+|1.21.1|1|[Release](https://github.com/FabricCore/yarn-wrapper-gen/releases/tag/1.21.1b1)|
 
 ## Motivation
 
@@ -58,11 +58,11 @@ For Minecraft versions without releases, you can build it yourself instead.
 
 1. `yarn-wrapper-gen` installed on system.
 ```sh
-cargo install --git 'https://github.com/siriusmart/yarn-wrapper-gen'
+cargo install --git 'https://github.com/FabricCore/yarn-wrapper-gen'
 ```
 2. `gradlew-commentator` installed on system.
 ```sh
-cargo install --git 'https://github.com/siriusmart/gradlew-commentator'
+cargo install --git 'https://github.com/FabricCore/gradlew-commentator'
 ```
 3. `yarn` mappings accessible on system.
 ```sh
