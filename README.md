@@ -2,9 +2,9 @@
 
 This tool generates wrapper classes using [yarn](https://github.com/FabricMC/yarn) mappings. It can be used as a library or a standalone Fabric mod.
 
-|Minecraft version|Wrapper version|Download|
-|---|---|---|
-|1.21.1|1|[Release](https://github.com/Siriusmart/yarn-wrapper-gen/releases/tag/1.21.1b1)|
+|Minecraft version|Wrapper version|Download|Documentation|
+|---|---|---|---|
+|1.21.1|1|[Release](https://github.com/FabricCore/yarn-wrapper-gen/releases/tag/1.21.1b1)|[Class index](https://fabriccore.github.io/yarnwrap/build/1.21.1b1.html)|
 
 ## Motivation
 
@@ -64,11 +64,11 @@ For Minecraft versions without releases, you can build it yourself instead.
 
 1. `yarn-wrapper-gen` installed on system.
 ```sh
-cargo install --git 'https://github.com/siriusmart/yarn-wrapper-gen'
+cargo install --git 'https://github.com/FabricCore/yarn-wrapper-gen'
 ```
 2. `gradlew-commentator` installed on system.
 ```sh
-cargo install --git 'https://github.com/siriusmart/gradlew-commentator'
+cargo install --git 'https://github.com/FabricCore/gradlew-commentator'
 ```
 3. `yarn` mappings accessible on system.
 ```sh
@@ -98,6 +98,11 @@ yarn-wrapper-gen ~/Downloads/yarn/mappings/net ~/Downloads/yarnwrap 'com.example
 > - The first argument points to `/mappings/net` in the yarn repository.
 > - The second argument points to the output path for the generated files.
 > - The third argument is package name for the generated code in your project.
+>
+> Note that arguments in groups of 2 remaps the parts of the qualifying class name, the `yarnwrap` library remaps `yarnwrap.net.minecraft` to `yarnwrap`.
+> ```sh
+> yarn-wrapper-gen ~/Downloads/yarn/mappings/net ~/Downloads/yarnwrap 'yarnwrap' 'yarnwrap.net.minecraft' 'yarnwrap'
+> ```
 2. Copy the generated files to your project, at the specified location (argument 3). Again **make sure that your code compiles without errors**.
 3. Change directory to your project, and use `gradlew-commentator` to clean your code to a compilable state. This process runs `./gradlew check` multiple times and may take up to 10 minutes.
 ```sh
