@@ -36,6 +36,12 @@ int x2 = wrapped.x();
 x1 == x2 // true
 ```
 
+And using a similar mechanism for writing to fields.
+```java
+source.x = 123;
+wrapped.x(123);
+```
+
 ### Inheritance
 
 Since yarn mappings does not contain inheritance descriptors, inheritance is not represented in the generated code. For instance, using the source classes.

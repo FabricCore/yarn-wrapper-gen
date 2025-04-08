@@ -266,9 +266,11 @@ impl Entry {
                 let class = Self::type_string(&r#type, index, package, true, remap);
 
                 if class.starts_with(package) {
-                    format!("public {class} {label}() {{ return new {class}(wrapperContained.{label}); }}")
+                    format!(r#"public {class} {label}() {{ return new {class}(wrapperContained.{label}); }}
+public void {label}({class} value) {{ wrapperContained.{label} = value.wrapperContained; }}"#)
                 } else {
-                    format!("public {class} {label}() {{ return wrapperContained.{label}; }}")
+                    format!(r#"public {class} {label}() {{ return wrapperContained.{label}; }}
+public void {label}({class} value) {{ wrapperContained.{label} = value; }}"#)
                 }
             }
             Self::Method {
