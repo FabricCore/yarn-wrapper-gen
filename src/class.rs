@@ -31,19 +31,19 @@ impl Class {
             path = path.replace(from, to);
         }
 
-        let path = root.join(path.replace(".", "/")).with_extension("java");
+        let pathbuf = root.join(path.replace(".", "/")).with_extension("java");
 
-        if !path.parent().unwrap().exists() {
-            fs::create_dir_all(path.parent().unwrap()).unwrap();
+        if !pathbuf.parent().unwrap().exists() {
+            fs::create_dir_all(pathbuf.parent().unwrap()).unwrap();
         }
 
         OpenOptions::new()
             .write(true)
             .truncate(true)
             .create(true)
-            .open(path)
+            .open(pathbuf)
             .unwrap()
-            .write_all(self.to_string(index, package, remap).as_bytes())
+            .write_all(self.to_string(index, package, remap, self.real_name.last().unwrap()).as_bytes())
             .unwrap();
     }
 
@@ -52,12 +52,12 @@ impl Class {
         index: &Index,
         package: &str,
         remap: &HashMap<String, String>,
+        path: &str
     ) -> String {
         let package_name = self.real_name[0..self.real_name.len() - 1].join(".");
         let class_name = self.real_name.last().unwrap();
         let original_name = self.real_name.join(".");
         let mut remapped = format!("{package}.{package_name}");
-        let remapped_name = format!("{package}.{package_name}.{class_name}");
 
         let entries = self
             .entries
@@ -69,7 +69,7 @@ impl Class {
                     "{}",
                     entry
                         .0
-                        .to_string(index, package, remap, &original_name, &remapped_name)
+                        .to_string(index, package, remap, &original_name, path)
                 )
                 .unwrap();
                 acc
@@ -356,7 +356,6 @@ public void {label}({class} value) {{ wrapperContained.{label} = value; }}"#
 
 impl Entry {
     pub fn method(sig: &str) -> Self {
-        dbg!(sig);
         match sig.splitn(3, ' ').collect::<Vec<_>>().as_slice() {
             [_obfuscated, real_name, signature] => Self::Method {
                 label: real_name.to_string(),
