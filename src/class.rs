@@ -3,7 +3,7 @@ use std::{
     fmt::Write,
     fs::{self, OpenOptions},
     io::Write as IoWrite,
-    path::{Path, PathBuf},
+    path::Path,
 };
 
 use crate::Index;
@@ -56,13 +56,24 @@ impl Class {
         let package_name = self.real_name[0..self.real_name.len() - 1].join(".");
         let class_name = self.real_name.last().unwrap();
         let original_name = self.real_name.join(".");
-
-        let entries = self.entries.iter().fold(String::new(), |mut acc, entry| {
-            writeln!(acc, "{}", entry.0.to_string(index, package, remap)).unwrap();
-            acc
-        });
         let mut remapped = format!("{package}.{package_name}");
+        let remapped_name = format!("{package}.{package_name}.{class_name}");
 
+        let entries = self
+            .entries
+            .iter()
+            .cloned()
+            .fold(String::new(), |mut acc, entry| {
+                writeln!(
+                    acc,
+                    "{}",
+                    entry
+                        .0
+                        .to_string(index, package, remap, &original_name, &remapped_name)
+                )
+                .unwrap();
+                acc
+            });
         for (from, to) in remap.iter() {
             remapped = remapped.replace(from, to);
         }
@@ -156,7 +167,7 @@ impl Class {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Entry {
     Field {
         label: String,
@@ -245,15 +256,18 @@ impl Entry {
                     Self::type_string(&s[1..], index, package, false, remap)
                 )
             }
+            "" => String::new(),
             x => panic!("unknown type string \"{x}\""),
         }
     }
 
     pub fn to_string(
-        &self,
+        self,
         index: &Index,
         package: &str,
         remap: &HashMap<String, String>,
+        original_name: &str,
+        remapped_name: &str,
     ) -> String {
         match self {
             Self::Field { label, r#type } => {
@@ -266,11 +280,15 @@ impl Entry {
                 let class = Self::type_string(&r#type, index, package, true, remap);
 
                 if class.starts_with(package) {
-                    format!(r#"public {class} {label}() {{ return new {class}(wrapperContained.{label}); }}
-public void {label}({class} value) {{ wrapperContained.{label} = value.wrapperContained; }}"#)
+                    format!(
+                        r#"public {class} {label}() {{ return new {class}(wrapperContained.{label}); }}
+public void {label}({class} value) {{ wrapperContained.{label} = value.wrapperContained; }}"#
+                    )
                 } else {
-                    format!(r#"public {class} {label}() {{ return wrapperContained.{label}; }}
-public void {label}({class} value) {{ wrapperContained.{label} = value; }}"#)
+                    format!(
+                        r#"public {class} {label}() {{ return wrapperContained.{label}; }}
+public void {label}({class} value) {{ wrapperContained.{label} = value; }}"#
+                    )
                 }
             }
             Self::Method {
@@ -279,7 +297,7 @@ public void {label}({class} value) {{ wrapperContained.{label} = value; }}"#)
                 param_declr,
                 output,
             } => {
-                let params = Self::type_preproc(params);
+                let params = Self::type_preproc(&params);
                 let output = if output.contains('$') {
                     "LObject".to_string()
                 } else {
@@ -317,6 +335,10 @@ public void {label}({class} value) {{ wrapperContained.{label} = value; }}"#)
                     .trim_end_matches(',')
                     .to_string();
 
+                if label.as_str() == "<init>" {
+                    return format!("public {remapped_name}({params}) {{ this.wrapperContained = new {original_name}({args}); }}");
+                }
+
                 format!(
                     "public {class} {label}({params}) {{ {} }}",
                     if class == "void" {
@@ -334,12 +356,28 @@ public void {label}({class} value) {{ wrapperContained.{label} = value; }}"#)
 
 impl Entry {
     pub fn method(sig: &str) -> Self {
+        dbg!(sig);
         match sig.splitn(3, ' ').collect::<Vec<_>>().as_slice() {
             [_obfuscated, real_name, signature] => Self::Method {
                 label: real_name.to_string(),
                 params: signature.split_once(')').unwrap().0[1..].to_string(),
                 param_declr: Vec::new(),
                 output: signature
+                    .split_once(')')
+                    .unwrap()
+                    .1
+                    .trim_end_matches(';')
+                    .to_string(),
+            },
+            /*
+            ["<init>", sig] => {
+                todo!()
+            }*/
+            [name, sig] => Self::Method {
+                label: name.to_string(),
+                params: sig.split_once(')').unwrap().0[1..].to_string(),
+                param_declr: Vec::new(),
+                output: sig
                     .split_once(')')
                     .unwrap()
                     .1
