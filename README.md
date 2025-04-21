@@ -2,9 +2,7 @@
 
 This tool generates wrapper classes using [yarn](https://github.com/FabricMC/yarn) mappings. It can be used as a library or a standalone Fabric mod.
 
-|Minecraft version|Wrapper version|Download|Documentation|
-|---|---|---|---|
-|1.21.1|1|[Release](https://github.com/FabricCore/yarn-wrapper-gen/releases/tag/1.21.1b1)|[Class index](https://fabriccore.github.io/yarnwrap/build/1.21.1b1.html)|
+Output: [**Yarnwrap**](https://github.com/FabricCore/yarnwrap)
 
 ## Motivation
 
